@@ -1,12 +1,17 @@
 import express from "express";
-import { createServer as createViteServer } from "vite";
+import { createServer as createViteServer, loadEnv } from "vite";
 import Stripe from "stripe";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 import { createClient } from "@supabase/supabase-js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Load env variables
+const env = loadEnv(process.env.NODE_ENV || 'development', process.cwd(), '');
+Object.assign(process.env, env);
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_mock");
 
@@ -146,37 +151,49 @@ async function startServer() {
     }
   });
 
-  // Error handler
-  app.use((err: any, req: any, res: any, next: any) => {
-    console.error("Unhandled Error:", err);
-    res.status(500).json({ error: "Internal Server Error" });
-  });
-
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
+    console.log("Setting up Vite middleware...");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
     });
     app.use(vite.middlewares);
   } else {
-    app.use(express.static(path.join(__dirname, "dist")));
+    const distPath = path.join(__dirname, "dist");
+    console.log(`Serving static files from: ${distPath}`);
+    app.use(express.static(distPath));
     app.get("*", (req, res) => {
-      res.sendFile(path.join(__dirname, "dist", "index.html"));
+      const indexPath = path.join(distPath, "index.html");
+      if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+      } else {
+        console.error(`Error: index.html not found at ${indexPath}`);
+        res.status(404).send("Application not built. Please run 'npm run build' first.");
+      }
     });
   }
 
+  // Error handler
+  app.use((err: any, req: any, res: any, next: any) => {
+    console.error("Unhandled Error:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  });
+
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://0.0.0.0:${PORT}`);
+    console.log(`Server running on http://0.0.0.0:${PORT} (NODE_ENV: ${process.env.NODE_ENV || 'development'})`);
   });
 }
 
 // Export for Vercel
 export default app;
 
-if (process.env.NODE_ENV !== "production") {
-  startServer();
-} else if (process.env.VERCEL !== "1") {
-  // If in production but not on Vercel (e.g. Docker/Cloud Run)
-  startServer();
+console.log("Server module loaded. NODE_ENV:", process.env.NODE_ENV);
+console.log("VERCEL:", process.env.VERCEL);
+
+if (process.env.NODE_ENV !== "production" || process.env.VERCEL !== "1") {
+  console.log("Starting server manually...");
+  startServer().catch(err => {
+    console.error("Failed to start server:", err);
+  });
 }

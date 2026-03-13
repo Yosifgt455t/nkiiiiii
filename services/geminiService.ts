@@ -33,12 +33,12 @@ export const getGeminiResponse = async (
   image?: { base64: string; mimeType: string }
 ): Promise<{ text: string; generatedImage?: string; generatedVideo?: string }> => {
   try {
-    const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || "";
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
     const ai = new GoogleGenAI({ apiKey });
     
     if (mode === InteractionMode.VISUALIZE) {
       try {
-        const openRouterKey = process.env.OPENROUTER_API_KEY || "";
+        const openRouterKey = import.meta.env.VITE_OPENROUTER_API_KEY || "";
         if (!openRouterKey) throw new Error("OpenRouter API Key is missing");
         const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
           method: "POST",
@@ -171,7 +171,7 @@ export const getGeminiResponse = async (
 
 export const getSpeechResponse = async (text: string): Promise<string | undefined> => {
   try {
-    const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || "";
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
     const ai = new GoogleGenAI({ apiKey });
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-preview-tts",

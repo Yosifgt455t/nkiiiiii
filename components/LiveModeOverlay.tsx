@@ -46,7 +46,7 @@ const LiveModeOverlay: React.FC<LiveModeOverlayProps> = ({ currentPdf, onClose, 
       const mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaStreamRef.current = mediaStream;
       
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || "" });
       
       const sessionPromise = ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-12-2025',

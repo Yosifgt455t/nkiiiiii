@@ -57,6 +57,14 @@ const App: React.FC = () => {
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
 
   useEffect(() => {
+    // Safety timeout to prevent infinite loading screen
+    const timeout = setTimeout(() => {
+      if (isAuthLoading) {
+        console.warn('Auth loading timed out, proceeding as guest...');
+        setIsAuthLoading(false);
+      }
+    }, 5000);
+
     if (!isSupabaseConfigured) {
       // If Supabase is not configured, check if user explicitly logged out
       const isLoggedOut = localStorage.getItem('nebras_guest_logged_out');
@@ -110,8 +118,10 @@ const App: React.FC = () => {
 
       return () => {
         subscription.unsubscribe();
+        clearTimeout(timeout);
       };
     }
+    return () => clearTimeout(timeout);
   }, []);
 
   // 3. Load all chats
